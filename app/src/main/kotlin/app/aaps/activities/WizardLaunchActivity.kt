@@ -51,3 +51,7 @@ class WizardLaunchActivity : DaggerAppCompatActivityWithResult() {
             addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             putExtra(INTERNAL_CARBS, carbs)
             putExtra(INTERNAL_NOTES, notes)
+        })
+        finish()
+    }
+}
