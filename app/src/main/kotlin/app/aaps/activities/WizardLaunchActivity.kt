@@ -14,7 +14,7 @@ import app.aaps.plugins.configuration.activities.DaggerAppCompatActivityWithResu
  * Intent contract:
  *   action: info.nightscout.androidaps.action.OPEN_BOLUS_WIZARD
  *   extras:
- *     carbs  (int,    required, 1..80, grams)
+ *     carbs  (int,    required, 1..150, grams)
  *     notes  (string, optional)
  *     source (string, optional, free-form caller tag)
  */
@@ -45,7 +45,7 @@ class WizardLaunchActivity : DaggerAppCompatActivityWithResult() {
 
         val carbs = intent.getIntExtra(EXTRA_CARBS, 0)
         val notes = intent.getStringExtra(EXTRA_NOTES) ?: ""
-        if (carbs <= 0 || carbs > 80) { finish(); return }
+        if (carbs <= 0 || carbs > 150) { finish(); return }
 
         startActivity(Intent(this, MainActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
