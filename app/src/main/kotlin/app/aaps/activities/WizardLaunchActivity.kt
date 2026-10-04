@@ -40,7 +40,6 @@ class WizardLaunchActivity : DaggerAppCompatActivityWithResult() {
         const val INTERNAL_NOTES = "open_wizard_notes"
         const val INTERNAL_ECARBS          = "open_carbs_dialog_carbs"
         const val INTERNAL_ECARBS_DURATION = "open_carbs_dialog_duration"
-        const val INTERNAL_ECARBS_NOTES    = "open_carbs_dialog_notes"
 
         private const val MAX_CARBS = 150
         // Same bound as AAPS's own Carbs dialog (HardLimits.MAX_CARBS_DURATION_HOURS).
@@ -67,6 +66,7 @@ class WizardLaunchActivity : DaggerAppCompatActivityWithResult() {
 
         val forward = Intent(this, MainActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            putExtra(INTERNAL_NOTES, notes)
         }
         when (intent.action) {
             ACTION_OPEN_CARBS_DIALOG -> {
@@ -74,13 +74,9 @@ class WizardLaunchActivity : DaggerAppCompatActivityWithResult() {
                 if (duration < 0 || duration > MAX_DURATION_HOURS) { finish(); return }
                 forward.putExtra(INTERNAL_ECARBS, carbs)
                 forward.putExtra(INTERNAL_ECARBS_DURATION, duration)
-                forward.putExtra(INTERNAL_ECARBS_NOTES, notes)
             }
 
-            else                     -> {
-                forward.putExtra(INTERNAL_CARBS, carbs)
-                forward.putExtra(INTERNAL_NOTES, notes)
-            }
+            else                     -> forward.putExtra(INTERNAL_CARBS, carbs)
         }
         startActivity(forward)
         finish()

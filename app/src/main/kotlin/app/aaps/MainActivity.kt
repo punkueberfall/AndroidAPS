@@ -30,6 +30,7 @@ import androidx.core.view.MenuCompat
 import androidx.core.view.MenuProvider
 import app.aaps.activities.HistoryBrowseActivity
 import app.aaps.activities.PreferencesActivity
+import app.aaps.activities.WizardLaunchActivity
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.configuration.Config
@@ -68,6 +69,8 @@ import app.aaps.plugins.constraints.signatureVerifier.SignatureVerifierPlugin
 import app.aaps.ui.activities.ProfileHelperActivity
 import app.aaps.ui.activities.StatsActivity
 import app.aaps.ui.activities.TreatmentsActivity
+import app.aaps.ui.dialogs.CarbsDialog
+import app.aaps.ui.dialogs.WizardDialog
 import app.aaps.ui.tabs.TabPageAdapter
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayoutMediator
@@ -146,6 +149,7 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
             .subscribe({
                            // 1st run of app
                            start()
+                           handleExternalIntent(intent)
                        }, fabricPrivacy::logException)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -262,8 +266,6 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
                         actionBarDrawerToggle.onOptionsItemSelected(menuItem)
                 }
         }
-        handleExternalWizardIntent(intent)
-        handleExternalCarbsIntent(intent)
         mainMenuProvider?.let { addMenuProvider(it) }
         // Setup views on 2nd and next activity start
         // On 1st start app is still initializing, start() is delayed and run from EventAppInitialized
@@ -271,54 +273,44 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
     }
 
     override fun onNewIntent(intent: Intent) {
-          super.onNewIntent(intent)
-          setIntent(intent)
-          handleExternalWizardIntent(intent)
-          handleExternalCarbsIntent(intent)
+        super.onNewIntent(intent)
+        // Handled in onResume, which always follows: showing a dialog right here can throw
+        // IllegalStateException when AAPS was in the background (state already saved).
+        setIntent(intent)
     }
 
     /**
-     * Picks up the carbs/notes extras forwarded from WizardLaunchActivity
-     * and opens the standard Bolus Wizard with the carbs field prefilled.
-     * The user still has to confirm the bolus through the regular
-     * AAPS confirmation dialog.
+     * Opens the Bolus Wizard or the Carbs dialog prefilled from the extras WizardLaunchActivity
+     * forwarded. Waits until AAPS is initialized (EventAppInitialized calls this again) and the
+     * fragment state can change. The extras are consumed, so a later resume doesn't reopen it.
+     * The user still confirms everything in AAPS's own dialogs.
      */
-    private fun handleExternalWizardIntent(intent: Intent) {
-            val carbs = intent.getIntExtra("open_wizard_carbs", 0)
-            if (carbs <= 0) return
-            val notes = intent.getStringExtra("open_wizard_notes") ?: ""
-            intent.removeExtra("open_wizard_carbs")
-            intent.removeExtra("open_wizard_notes")
+    private fun handleExternalIntent(intent: Intent) {
+        if (!config.appInitialized || supportFragmentManager.isStateSaved) return
+        val notes = intent.getStringExtra(WizardLaunchActivity.INTERNAL_NOTES) ?: ""
+        val wizardCarbs = intent.getIntExtra(WizardLaunchActivity.INTERNAL_CARBS, 0)
+        val eCarbs = intent.getIntExtra(WizardLaunchActivity.INTERNAL_ECARBS, 0)
+        val eCarbsDuration = intent.getIntExtra(WizardLaunchActivity.INTERNAL_ECARBS_DURATION, 0)
+        intent.removeExtra(WizardLaunchActivity.INTERNAL_CARBS)
+        intent.removeExtra(WizardLaunchActivity.INTERNAL_NOTES)
+        intent.removeExtra(WizardLaunchActivity.INTERNAL_ECARBS)
+        intent.removeExtra(WizardLaunchActivity.INTERNAL_ECARBS_DURATION)
+        when {
+            wizardCarbs > 0 -> WizardDialog().apply {
+                arguments = Bundle().apply {
+                    putDouble("carbs_input", wizardCarbs.toDouble())
+                    putString("notes_input", notes)
+                }
+            }.show(supportFragmentManager, "WizardDialog")
 
-        app.aaps.ui.dialogs.WizardDialog().apply {
-             arguments = Bundle().apply {
-                putDouble("carbs_input", carbs.toDouble())
-                putString("notes_input", notes)
-            }
-        }.show(supportFragmentManager, "WizardDialog")
-    }
-
-    /**
-     * Picks up the eCarbs extras forwarded from WizardLaunchActivity and
-     * opens the standard Carbs dialog with carbs and duration prefilled.
-     * The user still has to confirm the entry there.
-     */
-    private fun handleExternalCarbsIntent(intent: Intent) {
-        val carbs = intent.getIntExtra("open_carbs_dialog_carbs", 0)
-        if (carbs <= 0) return
-        val duration = intent.getIntExtra("open_carbs_dialog_duration", 0)
-        val notes = intent.getStringExtra("open_carbs_dialog_notes") ?: ""
-        intent.removeExtra("open_carbs_dialog_carbs")
-        intent.removeExtra("open_carbs_dialog_duration")
-        intent.removeExtra("open_carbs_dialog_notes")
-
-        app.aaps.ui.dialogs.CarbsDialog().apply {
-            arguments = Bundle().apply {
-                putDouble("carbs_input", carbs.toDouble())
-                putDouble("duration_input", duration.toDouble())
-                putString("notes_input", notes)
-            }
-        }.show(supportFragmentManager, "CarbsDialog")
+            eCarbs > 0      -> CarbsDialog().apply {
+                arguments = Bundle().apply {
+                    putDouble("carbs_input", eCarbs.toDouble())
+                    putDouble("duration_input", eCarbsDuration.toDouble())
+                    putString("notes_input", notes)
+                }
+            }.show(supportFragmentManager, "CarbsDialog")
+        }
     }
 
     private fun start() {
@@ -400,6 +392,7 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
     override fun onResume() {
         super.onResume()
         if (config.appInitialized) binding.splash.visibility = View.GONE
+        handleExternalIntent(intent)
         if (!isProtectionCheckActive) {
             isProtectionCheckActive = true
             protectionCheck.queryProtection(this, ProtectionCheck.Protection.APPLICATION, UIRunnable { isProtectionCheckActive = false },

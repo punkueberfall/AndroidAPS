@@ -86,7 +86,7 @@
             <intent-filter>
                 <action android:name="info.nightscout.androidaps.action.OPEN_BOLUS_WIZARD" />
                 <action android:name="info.nightscout.androidaps.action.OPEN_CARBS_DIALOG" />
-                   <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
