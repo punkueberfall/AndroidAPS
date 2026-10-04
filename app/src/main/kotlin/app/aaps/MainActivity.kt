@@ -263,6 +263,7 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
                 }
         }
         handleExternalWizardIntent(intent)
+        handleExternalCarbsIntent(intent)
         mainMenuProvider?.let { addMenuProvider(it) }
         // Setup views on 2nd and next activity start
         // On 1st start app is still initializing, start() is delayed and run from EventAppInitialized
@@ -273,6 +274,7 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
           super.onNewIntent(intent)
           setIntent(intent)
           handleExternalWizardIntent(intent)
+          handleExternalCarbsIntent(intent)
     }
 
     /**
@@ -294,6 +296,29 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
                 putString("notes_input", notes)
             }
         }.show(supportFragmentManager, "WizardDialog")
+    }
+
+    /**
+     * Picks up the eCarbs extras forwarded from WizardLaunchActivity and
+     * opens the standard Carbs dialog with carbs and duration prefilled.
+     * The user still has to confirm the entry there.
+     */
+    private fun handleExternalCarbsIntent(intent: Intent) {
+        val carbs = intent.getIntExtra("open_carbs_dialog_carbs", 0)
+        if (carbs <= 0) return
+        val duration = intent.getIntExtra("open_carbs_dialog_duration", 0)
+        val notes = intent.getStringExtra("open_carbs_dialog_notes") ?: ""
+        intent.removeExtra("open_carbs_dialog_carbs")
+        intent.removeExtra("open_carbs_dialog_duration")
+        intent.removeExtra("open_carbs_dialog_notes")
+
+        app.aaps.ui.dialogs.CarbsDialog().apply {
+            arguments = Bundle().apply {
+                putDouble("carbs_input", carbs.toDouble())
+                putDouble("duration_input", duration.toDouble())
+                putString("notes_input", notes)
+            }
+        }.show(supportFragmentManager, "CarbsDialog")
     }
 
     private fun start() {

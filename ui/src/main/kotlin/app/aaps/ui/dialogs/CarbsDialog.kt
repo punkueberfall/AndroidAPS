@@ -143,11 +143,13 @@ class CarbsDialog : DialogFragmentWithDate() {
 
         binding.duration.setParams(
             savedInstanceState?.getDouble("duration")
+                ?: arguments?.getDouble("duration_input", 0.0)
                 ?: 0.0, 0.0, HardLimits.MAX_CARBS_DURATION_HOURS.toDouble(), 1.0, DecimalFormat("0"), false, binding.okcancel.ok, textWatcher
         )
 
         binding.carbs.setParams(
             savedInstanceState?.getDouble("carbs")
+                ?: arguments?.getDouble("carbs_input", 0.0)
                 ?: 0.0, -maxCarbs, maxCarbs, 1.0, DecimalFormat("0"), false, binding.okcancel.ok, textWatcher
         )
         val plus1text = toSignedString(preferences.get(IntKey.OverviewCarbsButtonIncrement1))

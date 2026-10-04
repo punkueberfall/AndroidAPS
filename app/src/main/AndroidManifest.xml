@@ -73,7 +73,8 @@
             android:exported="false"
             android:theme="@style/AppTheme" />
 
-        <!-- External entry point for opening the Bolus Wizard with prefilled carbs.
+        <!-- External entry point for opening the Bolus Wizard with prefilled carbs,
+             or the Carbs dialog with prefilled extended carbs.
              Caller package is verified against an in-app whitelist.
              No insulin is ever delivered without the standard confirmation dialog. -->
         <activity
@@ -84,6 +85,7 @@
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="info.nightscout.androidaps.action.OPEN_BOLUS_WIZARD" />
+                <action android:name="info.nightscout.androidaps.action.OPEN_CARBS_DIALOG" />
                    <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
