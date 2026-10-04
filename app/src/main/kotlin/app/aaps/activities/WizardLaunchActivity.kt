@@ -1,6 +1,7 @@
 package app.aaps.activities
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import app.aaps.MainActivity
 import app.aaps.plugins.configuration.activities.DaggerAppCompatActivityWithResult
@@ -58,8 +59,7 @@ class WizardLaunchActivity : DaggerAppCompatActivityWithResult() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val caller = callingPackage ?: referrer?.host
-        if (caller !in ALLOWED_CALLERS) { finish(); return }
+        if (resolveCaller() !in ALLOWED_CALLERS) { finish(); return }
 
         val carbs = intent.getIntExtra(EXTRA_CARBS, 0)
         val notes = intent.getStringExtra(EXTRA_NOTES) ?: ""
@@ -85,4 +85,15 @@ class WizardLaunchActivity : DaggerAppCompatActivityWithResult() {
         startActivity(forward)
         finish()
     }
+
+    /**
+     * Android 14+: the system-attested launcher package, which a caller can't forge — it's
+     * only reported when the caller opts in via ActivityOptions.setShareIdentityEnabled(true)
+     * (DiaBite does), so callers that don't opt in are rejected. Older Android has no attested
+     * source for a plain startActivity: callingPackage is null there, and referrer comes from
+     * Intent.EXTRA_REFERRER, which any app can set — kept only as a weaker fallback.
+     */
+    private fun resolveCaller(): String? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) launchedFromPackage
+        else callingPackage ?: referrer?.host
 }
